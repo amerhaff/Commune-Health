@@ -1,30 +1,51 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
-export function ForgotPasswordForm() {
-  const [email, setEmail] = useState("")
-  const [isSubmitted, setIsSubmitted] = useState(false)
+export function ResetPasswordForm() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
+  const [isSubmitted, setIsSubmitted] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    
+
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match")
+      return
+    }
+
+    if (newPassword.length < 8) {
+      setError("Password must be at least 8 characters long")
+      return
+    }
+
     try {
-      const response = await fetch('http://localhost:8000/api/accounts/password/reset/', {
+      const response = await fetch('http://localhost:8000/api/accounts/password/reset/confirm/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({
+          token: searchParams.get('token'),
+          email: searchParams.get('email'),
+          new_password: newPassword,
+        }),
       })
 
       if (response.ok) {
         setIsSubmitted(true)
+        setTimeout(() => {
+          router.push('/login')
+        }, 3000)
       } else {
         const data = await response.json()
         setError(data.error || 'Something went wrong')
@@ -38,10 +59,10 @@ export function ForgotPasswordForm() {
     return (
       <div className="text-center space-y-4">
         <p className="text-green-600">
-          If an account exists for {email}, we have sent password reset instructions to this email address.
+          Your password has been successfully reset. Redirecting to login...
         </p>
         <Link href="/login" className="text-[#1400FF] hover:underline">
-          Return to login
+          Click here if you are not redirected
         </Link>
       </div>
     )
@@ -51,10 +72,18 @@ export function ForgotPasswordForm() {
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && <p className="text-red-500 text-center">{error}</p>}
       <Input
-        type="email"
-        placeholder="Enter your email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        type="password"
+        placeholder="Enter new password"
+        value={newPassword}
+        onChange={(e) => setNewPassword(e.target.value)}
+        required
+        className="h-12 rounded-full px-6 text-lg"
+      />
+      <Input
+        type="password"
+        placeholder="Confirm new password"
+        value={confirmPassword}
+        onChange={(e) => setConfirmPassword(e.target.value)}
         required
         className="h-12 rounded-full px-6 text-lg"
       />
@@ -72,5 +101,4 @@ export function ForgotPasswordForm() {
       </div>
     </form>
   )
-}
-
+} 
