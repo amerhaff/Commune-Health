@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,7 @@ import { ArrowLeft, DollarSign, Users, Calendar, TrendingUp, TrendingDown, Arrow
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { cn } from "@/lib/utils"
+import { brokerApi } from "@/utils/broker-api-client"
 
 interface MonthlyData {
 month: string;
@@ -148,6 +149,25 @@ const chartData = months.map(month => ({
     return sum + (monthData?.clients || 0);
   }, 0),
 }));
+
+const [revenueData, setRevenueData] = useState(null);
+
+useEffect(() => {
+  const fetchRevenueData = async () => {
+    try {
+      const data = await brokerApi.getRevenueMetrics(
+        'current',
+        selectedYear,
+        selectedMonth
+      );
+      setRevenueData(data);
+    } catch (error) {
+      console.error('Error fetching revenue data:', error);
+    }
+  };
+
+  fetchRevenueData();
+}, [selectedYear, selectedMonth]);
 
 return (
   <div className="flex flex-col min-h-screen">

@@ -1,6 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { brokerApi } from "@/utils/broker-api-client"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { ErrorAlert } from "@/components/ui/error-alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -53,118 +56,25 @@ export default function BrokerProviderDirectoryPage() {
   const [expandedProvider, setExpandedProvider] = useState<string | null>(null)
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null)
   const [message, setMessage] = useState("")
+  const [providers, setProviders] = useState<Provider[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const [providers, setProviders] = useState<Provider[]>([
-    {
-      id: "1",
-      name: "Dr. Jane Smith",
-      specialty: "Family Medicine",
-      practiceName: "HealthFirst Clinic",
-      location: "New York, NY",
-      email: "jane.smith@healthfirst.com",
-      phone: "(555) 123-4567",
-      website: "www.healthfirstclinic.com",
-      address: {
-        street: "123 Health Ave",
-        city: "New York",
-        state: "NY",
-        zipCode: "10001"
-      },
-      education: {
-        medicalSchool: {
-          degree: "MD",
-          institution: "Harvard Medical School",
-          graduationYear: 2005,
-        },
-        residency: {
-          degree: "Residency",
-          institution: "Massachusetts General Hospital",
-          graduationYear: 2008,
-          specialty: "Family Medicine",
-        },
-      },
-      yearsOfExperience: 15,
-      membershipTiers: [
-        { name: "Basic", price: 50, description: "Annual check-up and basic care" },
-        { name: "Standard", price: 100, description: "Includes specialist referrals and priority scheduling" },
-        { name: "Premium", price: 200, description: "24/7 access, home visits, and comprehensive care" }
-      ]
-    },
-    {
-      id: "2",
-      name: "Dr. John Doe",
-      specialty: "Internal Medicine",
-      practiceName: "City Health Center",
-      location: "Los Angeles, CA",
-      email: "john.doe@cityhealth.com",
-      phone: "(555) 987-6543",
-      website: "www.cityhealthcenter.com",
-      address: {
-        street: "456 Medical Blvd",
-        city: "Los Angeles",
-        state: "CA",
-        zipCode: "90001"
-      },
-      education: {
-        medicalSchool: {
-          degree: "MD",
-          institution: "Stanford University School of Medicine",
-          graduationYear: 2000,
-        },
-        residency: {
-          degree: "Residency",
-          institution: "UCLA Medical Center",
-          graduationYear: 2003,
-          specialty: "Internal Medicine",
-        },
-        fellowship: {
-          degree: "Fellowship",
-          institution: "Johns Hopkins Hospital",
-          graduationYear: 2005,
-          specialty: "Cardiology",
-        },
-      },
-      yearsOfExperience: 20,
-      membershipTiers: [
-        { name: "Basic", price: 75, description: "Regular check-ups and basic care" },
-        { name: "Premium", price: 150, description: "Includes specialist care and 24/7 access" }
-      ]
-    },
-    {
-      id: "3",
-      name: "Dr. Emily Brown",
-      specialty: "Pediatrics",
-      practiceName: "Kids Care Clinic",
-      location: "Chicago, IL",
-      email: "emily.brown@kidscare.com",
-      phone: "(555) 246-8135",
-      website: "www.kidscareclinic.com",
-      address: {
-        street: "789 Child St",
-        city: "Chicago",
-        state: "IL",
-        zipCode: "60601"
-      },
-      education: {
-        medicalSchool: {
-          degree: "MD",
-          institution: "University of Chicago Pritzker School of Medicine",
-          graduationYear: 2010,
-        },
-        residency: {
-          degree: "Residency",
-          institution: "Ann & Robert H. Lurie Children's Hospital of Chicago",
-          graduationYear: 2013,
-          specialty: "Pediatrics",
-        },
-      },
-      yearsOfExperience: 10,
-      membershipTiers: [
-        { name: "Child Basic", price: 60, description: "Regular check-ups and vaccinations" },
-        { name: "Child Plus", price: 120, description: "Includes specialist referrals and 24/7 nurse hotline" }
-      ]
+  useEffect(() => {
+    const fetchProviders = async () => {
+      try {
+        const data = await brokerApi.getProviderDirectory('current')
+        setProviders(data.providers)
+      } catch (err) {
+        setError('Failed to fetch provider directory')
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
     }
-  ])
+
+    fetchProviders()
+  }, [])
 
   const filteredProviders = providers.filter(provider =>
     provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -189,6 +99,9 @@ export default function BrokerProviderDirectoryPage() {
       setSelectedProvider(null)
     }
   }
+
+  if (loading) return <LoadingSpinner />
+  if (error) return <ErrorAlert message={error} />
 
   return (
     <div className="container mx-auto px-4 py-8">

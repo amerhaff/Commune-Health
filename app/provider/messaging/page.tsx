@@ -114,6 +114,41 @@ const filteredContacts = contacts.filter(contact =>
   (contact.company && contact.company.toLowerCase().includes(searchTerm.toLowerCase()))
 )
 
+const fetchMessages = async () => {
+  try {
+    const response = await fetch(`${API_BASE}/api/providers/${providerId}/messages/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    const data = await response.json();
+    setMessages(data);
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+  }
+};
+
+const sendMessage = async (messageData: any) => {
+  try {
+    const response = await fetch(`${API_BASE}/api/providers/${providerId}/send-message/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(messageData)
+    });
+    
+    if (response.ok) {
+      // Add new message to state
+      const newMessage = await response.json();
+      setMessages(prev => [...prev, newMessage]);
+    }
+  } catch (error) {
+    console.error('Error sending message:', error);
+  }
+};
+
 return (
   <div className="container mx-auto px-4 py-8">
     <header className="border-b mb-8">

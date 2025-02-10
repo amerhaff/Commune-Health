@@ -36,6 +36,9 @@ import { Badge } from "@/components/ui/badge"
 import { usStates } from "@/utils/us-states"
 import React from "react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { brokerApi } from "@/utils/broker-api-client"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { ErrorAlert } from "@/components/ui/error-alert"
 
 
 interface Dependent {
@@ -299,6 +302,29 @@ export default function EnrollmentCenterPage() {
     status: "Pending",
   })
 
+  const [enrollmentData, setEnrollmentData] = useState({
+    pending_count: 0,
+    enrollments: []
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchEnrollmentData = async () => {
+      try {
+        const data = await brokerApi.getEnrollmentCenter('current');
+        setEnrollmentData(data);
+      } catch (err) {
+        setError('Failed to fetch enrollment data');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEnrollmentData();
+  }, []);
+
   const filteredEmployers = employers.filter(employer =>
     employer.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
@@ -452,6 +478,9 @@ export default function EnrollmentCenterPage() {
   };
 
   // ... other functions
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorAlert message={error} />;
 
   return (
     <div className="container mx-auto px-4 py-8">

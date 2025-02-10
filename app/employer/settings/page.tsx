@@ -12,55 +12,35 @@ import { ArrowLeft, Upload } from "lucide-react"
 import { usStates } from "@/utils/us-states"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
+import { employerApi } from "@/utils/employer-api-client"
+import { toast } from "react-hot-toast"
 
 export default function EmployerSettingsPage() {
-  const [companyInfo, setCompanyInfo] = useState({
-    companyName: "TechCorp Inc.",
-    companySize: "101-500",
-    companyWebsite: "www.techcorp.com",
-  })
-
-  const [addressInfo, setAddressInfo] = useState({
-    street: "123 Tech Street",
+  const [settings, setSettings] = useState({
+    company_name: "TechCorp Inc.",
+    company_size: "101-500",
+    company_website: "www.techcorp.com",
+    street_address: "123 Tech Street",
     suite: "Suite 400",
     city: "San Francisco",
     state: "CA",
-    zipCode: "94105",
-  })
-
-  const [contactInfo, setContactInfo] = useState({
-    primaryContactName: "John Doe",
-    primaryContactEmail: "john.doe@techcorp.com",
-    primaryContactPhone: "555-0123",
-  })
-
-  const [passwordInfo, setPasswordInfo] = useState({
-    newPassword: "",
-    confirmPassword: "",
+    zip_code: "94105",
+    primary_contact_name: "John Doe",
+    primary_contact_email: "john.doe@techcorp.com",
+    primary_contact_phone: "555-0123",
   })
 
   const [ein, setEin] = useState("")
 
-  const handleCompanyInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCompanyInfo({ ...companyInfo, [e.target.name]: e.target.value })
-  }
-
-  const handleAddressInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setAddressInfo({ ...addressInfo, [e.target.name]: e.target.value })
-  }
-
-  const handleContactInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setContactInfo({ ...contactInfo, [e.target.name]: e.target.value })
-  }
-
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPasswordInfo({ ...passwordInfo, [e.target.name]: e.target.value })
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Here you would typically send the updated info to your backend
-    console.log("Updated info:", { companyInfo, addressInfo, contactInfo, ein }) // Include ein
+    try {
+      await employerApi.updateSettings('current', settings)
+      toast.success('Settings updated successfully')
+    } catch (error) {
+      console.error('Error updating settings:', error)
+      toast.error('Failed to update settings')
+    }
   }
 
   return (
@@ -108,9 +88,6 @@ export default function EmployerSettingsPage() {
             <TabsTrigger value="contact" className={cn("data-[state=active]:bg-black data-[state=active]:text-white")}>
               Contact Information
             </TabsTrigger>
-            <TabsTrigger value="password" className={cn("data-[state=active]:bg-black data-[state=active]:text-white")}>
-              Change Password
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="company">
@@ -121,21 +98,21 @@ export default function EmployerSettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="companyName">Company Name</Label>
+                  <Label htmlFor="company_name">Company Name</Label>
                   <Input
-                    id="companyName"
-                    name="companyName"
-                    value={companyInfo.companyName}
-                    onChange={handleCompanyInfoChange}
+                    id="company_name"
+                    name="company_name"
+                    value={settings.company_name}
+                    onChange={(e) => setSettings({ ...settings, company_name: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="companyWebsite">Company Website</Label>
+                  <Label htmlFor="company_website">Company Website</Label>
                   <Input
-                    id="companyWebsite"
-                    name="companyWebsite"
-                    value={companyInfo.companyWebsite}
-                    onChange={handleCompanyInfoChange}
+                    id="company_website"
+                    name="company_website"
+                    value={settings.company_website}
+                    onChange={(e) => setSettings({ ...settings, company_website: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -151,23 +128,38 @@ export default function EmployerSettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="street">Street Address</Label>
-                  <Input id="street" name="street" value={addressInfo.street} onChange={handleAddressInfoChange} />
+                  <Label htmlFor="street_address">Street Address</Label>
+                  <Input
+                    id="street_address"
+                    name="street_address"
+                    value={settings.street_address}
+                    onChange={(e) => setSettings({ ...settings, street_address: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="suite">Suite/Apt (optional)</Label>
-                  <Input id="suite" name="suite" value={addressInfo.suite} onChange={handleAddressInfoChange} />
+                  <Input
+                    id="suite"
+                    name="suite"
+                    value={settings.suite}
+                    onChange={(e) => setSettings({ ...settings, suite: e.target.value })}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="city">City</Label>
-                    <Input id="city" name="city" value={addressInfo.city} onChange={handleAddressInfoChange} />
+                    <Input
+                      id="city"
+                      name="city"
+                      value={settings.city}
+                      onChange={(e) => setSettings({ ...settings, city: e.target.value })}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="state">State</Label>
                     <Select
-                      value={addressInfo.state}
-                      onValueChange={(value) => setAddressInfo((prev) => ({ ...prev, state: value }))}
+                      value={settings.state}
+                      onValueChange={(value) => setSettings({ ...settings, state: value })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select State" />
@@ -183,12 +175,12 @@ export default function EmployerSettingsPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="zipCode">ZIP Code</Label>
+                  <Label htmlFor="zip_code">ZIP Code</Label>
                   <Input
-                    id="zipCode"
-                    name="zipCode"
-                    value={addressInfo.zipCode}
-                    onChange={handleAddressInfoChange}
+                    id="zip_code"
+                    name="zip_code"
+                    value={settings.zip_code}
+                    onChange={(e) => setSettings({ ...settings, zip_code: e.target.value })}
                     maxLength={5}
                     pattern="\d{5}"
                   />
@@ -205,62 +197,31 @@ export default function EmployerSettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="primaryContactName">Primary Contact Name</Label>
+                  <Label htmlFor="primary_contact_name">Primary Contact Name</Label>
                   <Input
-                    id="primaryContactName"
-                    name="primaryContactName"
-                    value={contactInfo.primaryContactName}
-                    onChange={handleContactInfoChange}
+                    id="primary_contact_name"
+                    name="primary_contact_name"
+                    value={settings.primary_contact_name}
+                    onChange={(e) => setSettings({ ...settings, primary_contact_name: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="primaryContactEmail">Primary Contact Email</Label>
+                  <Label htmlFor="primary_contact_email">Primary Contact Email</Label>
                   <Input
-                    id="primaryContactEmail"
-                    name="primaryContactEmail"
+                    id="primary_contact_email"
+                    name="primary_contact_email"
                     type="email"
-                    value={contactInfo.primaryContactEmail}
-                    onChange={handleContactInfoChange}
+                    value={settings.primary_contact_email}
+                    onChange={(e) => setSettings({ ...settings, primary_contact_email: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="primaryContactPhone">Primary Contact Phone</Label>
+                  <Label htmlFor="primary_contact_phone">Primary Contact Phone</Label>
                   <Input
-                    id="primaryContactPhone"
-                    name="primaryContactPhone"
-                    value={contactInfo.primaryContactPhone}
-                    onChange={handleContactInfoChange}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="password">
-            <Card className="relative">
-              <div className="absolute inset-x-0 top-0 h-2 bg-[#1400FF] rounded-t-md"></div>
-              <CardHeader className="relative z-10">
-                <CardTitle>Change Password</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="newPassword">New Password</Label>
-                  <Input
-                    id="newPassword"
-                    name="newPassword"
-                    type="password"
-                    value={passwordInfo.newPassword}
-                    onChange={handlePasswordChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    value={passwordInfo.confirmPassword}
-                    onChange={handlePasswordChange}
+                    id="primary_contact_phone"
+                    name="primary_contact_phone"
+                    value={settings.primary_contact_phone}
+                    onChange={(e) => setSettings({ ...settings, primary_contact_phone: e.target.value })}
                   />
                 </div>
               </CardContent>

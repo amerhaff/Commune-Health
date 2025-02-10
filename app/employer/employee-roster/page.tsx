@@ -14,6 +14,9 @@ import { Plus, UserMinus, Check, Users, ChevronRight, ChevronDown, AlertTriangle
 import { useToast } from "@/components/ui/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import React from 'react'
+import { employerApi } from "@/utils/employer-api-client"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { ErrorAlert } from "@/components/ui/error-alert"
 
 interface Dependent {
   id: string;
@@ -50,67 +53,9 @@ interface Employee {
 
 export default function EmployeeRosterPage() {
   const { toast } = useToast()
-  const [employees, setEmployees] = useState<Employee[]>([
-    {
-      id: "1",
-      firstName: "John",
-      lastName: "Doe",
-      email: "john@example.com",
-      dateOfBirth: "1985-05-15",
-      sex: "Male",
-      address: "123 Main St",
-      apartment: "Apt 4B",
-      city: "New York",
-      state: "NY",
-      zipCode: "10001",
-      status: "Enrolled",
-      dpcProvider: "HealthFirst Clinic",
-      membershipTier: "Standard",
-      isExpanded: false,
-      dependents: [
-        { id: "1-1", firstName: "Jane", lastName: "Doe", relationship: "Spouse", dateOfBirth: "1987-03-20", sex: "Female", isEnrolled: true, membershipAmount: 100, dpcProvider: "HealthFirst Clinic", membershipTier: "Standard" },
-        { id: "1-2", firstName: "Jimmy", lastName: "Doe", relationship: "Child", dateOfBirth: "2010-11-05", sex: "Male", isEnrolled: true, membershipAmount: 50, dpcProvider: "HealthFirst Clinic", membershipTier: "Standard" },
-      ],
-      membershipAmount: 200,
-    },
-    {
-      id: "2",
-      firstName: "Alice",
-      lastName: "Smith",
-      email: "alice@example.com",
-      dateOfBirth: "1990-08-22",
-      sex: "Female",
-      address: "456 Elm St",
-      apartment: "",
-      city: "Los Angeles",
-      state: "CA",
-      zipCode: "90001",
-      status: "Not Enrolled",
-      dpcProvider: "",
-      membershipTier: "",
-      isExpanded: false,
-      dependents: [],
-    },
-    {
-      id: "3",
-      firstName: "Bob",
-      lastName: "Johnson",
-      email: "bob@example.com",
-      dateOfBirth: "1988-12-10",
-      sex: "Male",
-      address: "789 Oak St",
-      apartment: "Suite 10",
-      city: "Chicago",
-      state: "IL",
-      zipCode: "60601",
-      status: "Enrolled",
-      dpcProvider: "City Health Clinic",
-      membershipTier: "Basic",
-      isExpanded: false,
-      dependents: [],
-      membershipAmount: 150,
-    },
-  ])
+  const [employees, setEmployees] = useState<Employee[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const [enrollmentFigures, setEnrollmentFigures] = useState({
     totalEmployees: 0,
@@ -150,6 +95,22 @@ export default function EmployeeRosterPage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
 
   useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const data = await employerApi.getEmployeeRoster('current')
+        setEmployees(data)
+      } catch (err) {
+        setError('Failed to fetch employee roster')
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchEmployees()
+  }, [])
+
+  useEffect(() => {
     const figures = employees.reduce((acc, employee) => {
       acc.totalEmployees++;
       if (employee.status === "Enrolled") {
@@ -164,7 +125,6 @@ export default function EmployeeRosterPage() {
     figures.totalEnrollees = figures.enrolledEmployees + figures.enrolledDependents;
     setEnrollmentFigures(figures);
   }, [employees]);
-
 
   const toggleEmployeeExpansion = (employeeId: string) => {
     setEmployees(prevEmployees => prevEmployees.map(emp =>
@@ -185,34 +145,14 @@ export default function EmployeeRosterPage() {
     }
   }
 
-  const handleAddEmployee = () => {
-    const newEmployeeId = (employees.length + 1).toString()
-    const employeeToAdd: Employee = {
-      ...newEmployee,
-      id: newEmployeeId,
-      isExpanded: false,
-      dependents: [],
+  const handleAddEmployee = async (employeeData: any) => {
+    try {
+      const newEmployee = await employerApi.addEmployee('current', employeeData)
+      setEmployees(prev => [...prev, newEmployee])
+    } catch (err) {
+      console.error('Error adding employee:', err)
+      // Handle error
     }
-    setEmployees([...employees, employeeToAdd])
-    setNewEmployee({
-      firstName: "",
-      lastName: "",
-      email: "",
-      dateOfBirth: "",
-      sex: "Other",
-      address: "",
-      apartment: "",
-      city: "",
-      state: "",
-      zipCode: "",
-      status: "Not Enrolled",
-      dpcProvider: "",
-      membershipTier: "",
-    })
-    toast({
-      title: "Employee Added",
-      description: `${newEmployee.firstName} ${newEmployee.lastName} has been added to the roster.`,
-    })
   }
 
   const handleRemoveEmployee = (employeeId: string) => {
@@ -271,6 +211,9 @@ export default function EmployeeRosterPage() {
       description: "The dependent has been removed.",
     })
   }
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorAlert message={error} />;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -605,7 +548,7 @@ export default function EmployeeRosterPage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleAddEmployee}>Add Employee</Button>
+                  <Button onClick={() => handleAddEmployee(newEmployee)}>Add Employee</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>

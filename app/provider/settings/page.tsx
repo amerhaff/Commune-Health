@@ -12,6 +12,7 @@ import { ArrowLeft, Upload } from "lucide-react"
 import { usStates } from "@/utils/us-states"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
+import { toast } from "react-hot-toast"
 
 export default function ProviderSettingsPage() {
   const [personalInfo, setPersonalInfo] = useState({
@@ -46,6 +47,9 @@ export default function ProviderSettingsPage() {
     practiceState: "CA",
     practiceZipCode: "12345",
     practiceWebsite: "www.healthfirst.com",
+    acceptingPatients: true,
+    maxPatientCapacity: "",
+    currentPatientCount: 0
   })
 
   const [passwordInfo, setPasswordInfo] = useState({
@@ -53,6 +57,26 @@ export default function ProviderSettingsPage() {
     newPassword: "",
     confirmPassword: "",
   })
+
+  // Add warning threshold (80% of capacity)
+  const CAPACITY_WARNING_THRESHOLD = 0.8
+
+  // Add validation function
+  const validatePatientCapacity = (capacity: number) => {
+    if (capacity < practiceInfo.currentPatientCount) {
+      return "Maximum capacity cannot be less than current patient count"
+    }
+    if (capacity < 1) {
+      return "Maximum capacity must be at least 1"
+    }
+    return null
+  }
+
+  // Add warning check
+  const isNearingCapacity = () => {
+    const maxCapacity = parseInt(practiceInfo.maxPatientCapacity as string)
+    return practiceInfo.currentPatientCount >= (maxCapacity * CAPACITY_WARNING_THRESHOLD)
+  }
 
   const handlePersonalInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPersonalInfo({ ...personalInfo, [e.target.name]: e.target.value })
@@ -77,10 +101,33 @@ export default function ProviderSettingsPage() {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Here you would typically send the updated info to your backend
-    console.log("Updated info:", { personalInfo, practiceInfo })
+    
+    try {
+      const response = await fetch('http://localhost:8000/api/accounts/providers/update-capacity/', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}` // Assuming token is stored in localStorage
+        },
+        body: JSON.stringify({
+          accepting_patients: practiceInfo.acceptingPatients,
+          max_patient_capacity: parseInt(practiceInfo.maxPatientCapacity as string)
+        })
+      })
+
+      if (response.ok) {
+        // Show success message
+        alert('Practice settings updated successfully')
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Failed to update practice settings')
+      }
+    } catch (error) {
+      console.error('Error updating practice settings:', error)
+      alert('Failed to connect to server')
+    }
   }
 
   useEffect(() => {
@@ -91,6 +138,74 @@ export default function ProviderSettingsPage() {
       }
     }
   }, [personalInfo.headshotPreview])
+
+  useEffect(() => {
+    const fetchProviderData = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/accounts/providers/me/', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setPracticeInfo(prev => ({
+            ...prev,
+            acceptingPatients: data.accepting_patients,
+            maxPatientCapacity: data.max_patient_capacity.toString(),
+            currentPatientCount: data.current_patient_count
+          }))
+        }
+      } catch (error) {
+        console.error('Error fetching provider data:', error)
+      }
+    }
+
+    fetchProviderData()
+  }, [])
+
+  // Add API integration
+  const updateProviderProfile = async (profileData: any) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/providers/${providerId}/profile/`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(profileData)
+      });
+      
+      if (response.ok) {
+        // Show success message
+        toast.success('Profile updated successfully');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
+    }
+  };
+
+  const updatePassword = async (passwordData: any) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/providers/${providerId}/update-password/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(passwordData)
+      });
+      
+      if (response.ok) {
+        toast.success('Password updated successfully');
+      }
+    } catch (error) {
+      console.error('Error updating password:', error);
+      toast.error('Failed to update password');
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -335,6 +450,50 @@ export default function ProviderSettingsPage() {
                     value={practiceInfo.practiceWebsite}
                     onChange={handlePracticeInfoChange}
                   />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="acceptingPatients"
+                      name="acceptingPatients"
+                      checked={practiceInfo.acceptingPatients}
+                      onChange={(e) => setPracticeInfo(prev => ({
+                        ...prev,
+                        acceptingPatients: e.target.checked
+                      }))}
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
+                    <Label htmlFor="acceptingPatients">Currently Accepting New Patients</Label>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="maxPatientCapacity">Maximum Patient Capacity</Label>
+                  <Input
+                    id="maxPatientCapacity"
+                    name="maxPatientCapacity"
+                    type="number"
+                    min={practiceInfo.currentPatientCount}
+                    value={practiceInfo.maxPatientCapacity}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      const error = validatePatientCapacity(parseInt(value))
+                      if (!error) {
+                        setPracticeInfo(prev => ({ ...prev, maxPatientCapacity: value }))
+                      }
+                    }}
+                    placeholder="Enter maximum number of patients"
+                    required
+                    className={isNearingCapacity() ? "border-yellow-500" : ""}
+                  />
+                  {isNearingCapacity() && (
+                    <p className="text-yellow-600 text-sm">
+                      Warning: Nearing maximum patient capacity
+                    </p>
+                  )}
+                  <p className="text-sm text-gray-500">
+                    Current patient count: {practiceInfo.currentPatientCount}
+                  </p>
                 </div>
               </CardContent>
             </Card>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -20,6 +20,9 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
+import { employerApi } from "@/utils/employer-api-client"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { ErrorAlert } from "@/components/ui/error-alert"
 
 interface MembershipTier {
   name: string
@@ -60,130 +63,32 @@ interface Provider {
 }
 
 export default function ProviderDirectoryPage() {
-  const [providers, setProviders] = useState<Provider[]>([
-    {
-      id: "1",
-      name: "Dr. Jane Smith",
-      specialty: "Family Medicine",
-      practiceName: "HealthFirst Clinic",
-      email: "jane.smith@example.com",
-      phone: "(555) 123-4567",
-      address: {
-        street: "789 Health Ave",
-        city: "New York",
-        state: "NY",
-        zipCode: "10001"
-      },
-      website: "www.healthfirstclinic.com",
-      imageUrl: "/placeholder.svg?height=100&width=100",
-      education: {
-        medicalSchool: {
-          degree: "MD",
-          institution: "Harvard Medical School",
-          graduationYear: 2005,
-        },
-        residency: {
-          degree: "Residency",
-          institution: "Massachusetts General Hospital",
-          graduationYear: 2008,
-          specialty: "Family Medicine",
-        },
-      },
-      yearsOfExperience: 15,
-      membershipTiers: [
-        { name: "Basic", price: 50, description: "Annual check-up and basic care" },
-        { name: "Standard", price: 100, description: "Includes specialist referrals and priority scheduling" },
-        { name: "Premium", price: 200, description: "24/7 access, home visits, and comprehensive care" }
-      ],
-      isExpanded: false
-    },
-    {
-      id: "2",
-      name: "Dr. Michael Johnson",
-      specialty: "Pediatrics",
-      practiceName: "Kids Care Center",
-      email: "michael.johnson@example.com",
-      phone: "(555) 987-6543",
-      address: {
-        street: "456 Child St",
-        city: "Chicago",
-        state: "IL",
-        zipCode: "60601"
-      },
-      website: "www.kidscarecenter.com",
-      imageUrl: "/placeholder.svg?height=100&width=100",
-      education: {
-        medicalSchool: {
-          degree: "MD",
-          institution: "Johns Hopkins School of Medicine",
-          graduationYear: 2000,
-        },
-        residency: {
-          degree: "Residency",
-          institution: "Children's Hospital of Philadelphia",
-          graduationYear: 2003,
-          specialty: "Pediatrics",
-        },
-        fellowship: {
-          degree: "Fellowship",
-          institution: "Boston Children's Hospital",
-          graduationYear: 2005,
-          specialty: "Pediatric Cardiology",
-        },
-      },
-      yearsOfExperience: 20,
-      membershipTiers: [
-        { name: "Child Basic", price: 75, description: "Regular check-ups and vaccinations" },
-        { name: "Child Plus", price: 150, description: "Includes specialist care and 24/7 nurse hotline" }
-      ],
-      isExpanded: false
-    },
-    {
-      id: "3",
-      name: "Dr. Emily Brown",
-      specialty: "Cardiology",
-      practiceName: "Heart Health Institute",
-      email: "emily.brown@example.com",
-      phone: "(555) 246-8135",
-      address: {
-        street: "123 Cardio Ln",
-        city: "Los Angeles",
-        state: "CA",
-        zipCode: "90001"
-      },
-      website: "www.hearthealthinstitute.com",
-      imageUrl: "/placeholder.svg?height=100&width=100",
-      education: {
-        medicalSchool: {
-          degree: "MD",
-          institution: "Stanford University School of Medicine",
-          graduationYear: 2002,
-        },
-        residency: {
-          degree: "Residency",
-          institution: "UCLA Medical Center",
-          graduationYear: 2005,
-          specialty: "Internal Medicine",
-        },
-        fellowship: {
-          degree: "Fellowship",
-          institution: "Cleveland Clinic",
-          graduationYear: 2007,
-          specialty: "Interventional Cardiology",
-        },
-      },
-      yearsOfExperience: 18,
-      membershipTiers: [
-        { name: "Heart Basic", price: 100, description: "Regular heart check-ups and consultations" },
-        { name: "Heart Plus", price: 200, description: "Includes advanced diagnostics and priority care" }
-      ],
-      isExpanded: false
-    },
-  ])
+  const [providers, setProviders] = useState<Provider[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null)
   const [message, setMessage] = useState("")
+
+  useEffect(() => {
+    const fetchProviders = async () => {
+      try {
+        const data = await employerApi.getProviderDirectory('current')
+        setProviders(data.providers)
+      } catch (err) {
+        setError('Failed to fetch provider directory')
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProviders()
+  }, [])
+
+  if (loading) return <LoadingSpinner />
+  if (error) return <ErrorAlert message={error} />
 
   const filteredProviders = providers.filter((provider) =>
     provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -12,6 +12,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft, Mail, Phone, MapPin, Send, Search } from 'lucide-react'
 import { Input } from "@/components/ui/input"
+import { brokerApi } from "@/utils/broker-api-client"
 
 interface Message {
 id: string
@@ -94,39 +95,33 @@ const contacts: Contact[] = [
   },
 ]
 
-const handleSendMessage = () => {
+const handleSendMessage = async () => {
   if (message.trim() && selectedContact) {
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      sender: "You",
-      content: message,
-      timestamp: new Date(),
-      seen: true
-    }
-    setMessages(prev => [...prev, newMessage])
-    setMessage("")
-
-    // Simulate a response
-    setTimeout(() => {
-      const response: Message = {
-        id: (Date.now() + 1).toString(),
-        sender: selectedContact.name,
-        content: `Thank you for your message. I'll get back to you shortly.`,
-        timestamp: new Date(),
-        seen: false
-      }
+    try {
+      const response = await brokerApi.sendMessage('current', {
+        content: message,
+        // Add other necessary fields
+      });
       setMessages(prev => [...prev, response])
-    }, 1000)
+      setMessage("")
+    } catch (error) {
+      console.error('Error sending message:', error)
+    }
   }
 }
 
 useEffect(() => {
-  if (selectedContact && selectedContact.lastMessage) {
-    setMessages([selectedContact.lastMessage])
-  } else {
-    setMessages([])
+  const fetchMessages = async () => {
+    try {
+      const data = await brokerApi.getMessages('current')
+      setMessages(data.messages)
+    } catch (error) {
+      console.error('Error fetching messages:', error)
+    }
   }
-}, [selectedContact])
+
+  fetchMessages()
+}, [])
 
 const filteredContacts = contacts.filter(contact => 
   contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

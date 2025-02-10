@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { brokerApi } from "@/utils/broker-api-client"
+import { toast } from "react-hot-toast"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -39,6 +41,15 @@ export default function BrokerSettingsPage() {
     confirmPassword: "",
   })
 
+  const [settings, setSettings] = useState({
+    company_name: "",
+    license_number: "",
+    email: "",
+    phone: "",
+    address: "",
+    // Add other settings fields
+  })
+
   const handlePersonalInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPersonalInfo({ ...personalInfo, [e.target.name]: e.target.value })
   }
@@ -51,10 +62,15 @@ export default function BrokerSettingsPage() {
     setPasswordInfo({ ...passwordInfo, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Here you would typically send the updated info to your backend
-    console.log("Updated info:", { personalInfo, businessInfo })
+    try {
+      await brokerApi.updateSettings('current', settings)
+      toast.success('Settings updated successfully')
+    } catch (error) {
+      console.error('Error updating settings:', error)
+      toast.error('Failed to update settings')
+    }
   }
 
   return (
