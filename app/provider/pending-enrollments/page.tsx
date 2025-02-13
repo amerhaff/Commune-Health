@@ -16,6 +16,7 @@ import Image from "next/image";
 import { Users, Building2, ArrowLeft, ChevronDown, ChevronUp, UserCheck } from 'lucide-react';
 import { useProviderContext } from "@/context/ProviderContext";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { toast } from "@/components/ui/use-toast";
 
 interface Dependent {
 id: string;
@@ -181,48 +182,62 @@ useEffect(() => {
   updateMetrics(initialMetrics);
 }, [employers, updateMetrics]);
 
-const handleEnroll = (employerId: string, employeeId: string, dependentId?: string) => {
-  const updatedEmployers = employers.map((employer) =>
-    employer.id === employerId
-      ? {
-          ...employer,
-          employees: employer.employees.map((emp) =>
-            emp.id === employeeId
-              ? dependentId
-                ? {
-                    ...emp,
-                    dependents: emp.dependents.map((dep) =>
-                      dep.id === dependentId ? { ...dep, enrolled: true } : dep
-                    ),
-                  }
-                : { ...emp, enrolled: true }
-              : emp
-          ),
-          pendingCount: employer.pendingCount - 1,
-          enrolledCount: employer.enrolledCount + 1,
-        }
-      : employer
-  );
+const handleEnroll = async (employerId: string, employeeId: string, dependentId?: string) => {
+  try {
+    const response = await fetch(`http://localhost:8000/api/enrollment/requests/${employerId}/process/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        action: 'approve',
+        employee_id: employeeId,
+        dependent_id: dependentId
+      })
+    });
 
-  const newMetrics = {
-    totalEmployers: updatedEmployers.length,
-    totalEnrolled: updatedEmployers.reduce(
-      (acc, employer) => acc + employer.enrolledCount,
-      0
-    ),
-    pendingEnrollments: updatedEmployers.reduce(
-      (acc, employer) => acc + employer.pendingCount,
-      0
-    ),
-    employerEnrollmentsTotalEmployers: updatedEmployers.length,
-    employerEnrollmentsTotalEnrolled: updatedEmployers.reduce(
-      (acc, employer) => acc + employer.enrolledCount,
-      0
-    ),
-  };
+    if (response.ok) {
+      // Update UI state
+      const updatedEmployers = employers.map(employer =>
+        employer.id === employerId
+          ? {
+              ...employer,
+              employees: employer.employees.map(emp =>
+                emp.id === employeeId
+                  ? {
+                      ...emp,
+                      enrolled: true,
+                      dependents: emp.dependents.map(dep =>
+                        dep.id === dependentId
+                          ? { ...dep, enrolled: true }
+                          : dep
+                      )
+                    }
+                  : emp
+              ),
+              pendingCount: employer.pendingCount - 1,
+              enrolledCount: employer.enrolledCount + 1,
+            }
+          : employer
+      );
 
-  updateMetrics(newMetrics);
-  setEmployers(updatedEmployers);
+      setEmployers(updatedEmployers);
+      toast({
+        title: "Enrollment Successful",
+        description: dependentId 
+          ? "Dependent has been enrolled successfully"
+          : "Employee has been enrolled successfully",
+      });
+    }
+  } catch (error) {
+    console.error('Error processing enrollment:', error);
+    toast({
+      title: "Enrollment Failed",
+      description: "Please try again or contact support.",
+      variant: "destructive",
+    });
+  }
 };
 
 const handleReject = (employerId: string, employeeId: string, dependentId?: string) => {

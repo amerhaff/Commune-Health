@@ -54,8 +54,9 @@ interface Employee {
 export default function EmployeeRosterPage() {
   const { toast } = useToast()
   const [employees, setEmployees] = useState<Employee[]>([])
-  const [loading, setLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
 
   const [enrollmentFigures, setEnrollmentFigures] = useState({
     totalEmployees: 0,
@@ -65,7 +66,7 @@ export default function EmployeeRosterPage() {
     totalEnrollees: 0,
   })
 
-  const [newEmployee, setNewEmployee] = useState<Omit<Employee, 'id' | 'isExpanded' | 'dependents'>>({
+  const [newEmployee, setNewEmployee] = useState({
     firstName: "",
     lastName: "",
     email: "",
@@ -76,23 +77,15 @@ export default function EmployeeRosterPage() {
     city: "",
     state: "",
     zipCode: "",
-    status: "Not Enrolled",
-    dpcProvider: "",
-    membershipTier: "",
   })
 
-  const [newDependent, setNewDependent] = useState<Omit<Dependent, 'id'>>({
+  const [newDependent, setNewDependent] = useState({
     firstName: "",
     lastName: "",
     relationship: "",
     dateOfBirth: "",
     sex: "Other",
-    isEnrolled: false,
-    dpcProvider: "",
-    membershipTier: "",
   })
-
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -103,7 +96,7 @@ export default function EmployeeRosterPage() {
         setError('Failed to fetch employee roster')
         console.error(err)
       } finally {
-        setLoading(false)
+        setIsLoading(false)
       }
     }
 
@@ -120,15 +113,17 @@ export default function EmployeeRosterPage() {
         acc.unenrolledEmployees++;
       }
       return acc;
-    }, { totalEmployees: 0, enrolledEmployees: 0, unenrolledEmployees: 0, enrolledDependents: 0 });
+    }, { totalEmployees: 0, enrolledEmployees: 0, unenrolledEmployees: 0 });
 
     figures.totalEnrollees = figures.enrolledEmployees + figures.enrolledDependents;
     setEnrollmentFigures(figures);
   }, [employees]);
 
   const toggleEmployeeExpansion = (employeeId: string) => {
-    setEmployees(prevEmployees => prevEmployees.map(emp =>
-      emp.id === employeeId ? { ...emp, isExpanded: !emp.isExpanded } : emp
+    setEmployees(employees.map(emp =>
+      emp.id === employeeId
+        ? { ...emp, isExpanded: !emp.isExpanded }
+        : emp
     ))
   }
 
@@ -145,13 +140,33 @@ export default function EmployeeRosterPage() {
     }
   }
 
-  const handleAddEmployee = async (employeeData: any) => {
+  const handleAddEmployee = async () => {
     try {
-      const newEmployee = await employerApi.addEmployee('current', employeeData)
-      setEmployees(prev => [...prev, newEmployee])
-    } catch (err) {
-      console.error('Error adding employee:', err)
-      // Handle error
+      const employee = await employerApi.addEmployee('current', newEmployee)
+      setEmployees(prev => [...prev, { ...employee, isExpanded: false, dependents: [] }])
+      toast({
+        title: "Employee Added",
+        description: `${newEmployee.firstName} ${newEmployee.lastName} has been added to the roster.`,
+      })
+      // Reset form
+      setNewEmployee({
+        firstName: "",
+        lastName: "",
+        email: "",
+        dateOfBirth: "",
+        sex: "Other",
+        address: "",
+        apartment: "",
+        city: "",
+        state: "",
+        zipCode: "",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add employee. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -163,39 +178,33 @@ export default function EmployeeRosterPage() {
     })
   }
 
-  const handleAddDependent = () => {
-    if (selectedEmployeeId) {
-      const newDependentId = Date.now().toString()
-      const employee = employees.find(emp => emp.id === selectedEmployeeId);
+  const handleAddDependent = async () => {
+    if (!selectedEmployeeId) return;
+
+    try {
+      const dependent = await employerApi.addDependent(selectedEmployeeId, newDependent)
       setEmployees(employees.map(emp =>
         emp.id === selectedEmployeeId
-          ? {
-            ...emp,
-            dependents: [
-              ...emp.dependents,
-              {
-                ...newDependent,
-                id: newDependentId,
-                dpcProvider: employee?.dpcProvider || "",
-                membershipTier: employee?.membershipTier || "",
-              },
-            ],
-          }
+          ? { ...emp, dependents: [...emp.dependents, dependent] }
           : emp
       ))
+      toast({
+        title: "Dependent Added",
+        description: `${newDependent.firstName} ${newDependent.lastName} has been added as a dependent.`,
+      })
+      // Reset form
       setNewDependent({
         firstName: "",
         lastName: "",
         relationship: "",
         dateOfBirth: "",
         sex: "Other",
-        isEnrolled: false,
-        dpcProvider: "",
-        membershipTier: "",
       })
+    } catch (error) {
       toast({
-        title: "Dependent Added",
-        description: `${newDependent.firstName} ${newDependent.lastName} has been added as a dependent.`,
+        title: "Error",
+        description: "Failed to add dependent. Please try again.",
+        variant: "destructive",
       })
     }
   }
@@ -212,7 +221,7 @@ export default function EmployeeRosterPage() {
     })
   }
 
-  if (loading) return <LoadingSpinner />;
+  if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorAlert message={error} />;
 
   return (
@@ -548,7 +557,7 @@ export default function EmployeeRosterPage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={() => handleAddEmployee(newEmployee)}>Add Employee</Button>
+                  <Button onClick={handleAddEmployee}>Add Employee</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>

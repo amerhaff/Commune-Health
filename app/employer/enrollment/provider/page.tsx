@@ -342,18 +342,46 @@ export default function ProviderEnrollmentPage() {
   const { monthly, yearly } = calculateTotalCost()
 
   const handleCompleteEnrollment = async () => {
-    // Here you would typically send the enrollment data to your backend
-    // For this example, we'll simulate an API call with a timeout
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    try {
+      // Get selected employees and dependents
+      const selectedEmployees = employees.filter(emp => emp.selected);
+      const selectedDependents = employees.reduce((acc, emp) => [
+        ...acc,
+        ...emp.dependents.filter(dep => dep.selected)
+      ], [] as Dependent[]);
 
-    setIsEnrollmentComplete(true)
-    setIsConfirmationOpen(false)
-    toast({
-      title: "Enrollment Completed",
-      description: "Your enrollment has been successfully processed.",
-      duration: 5000,
-    })
-  }
+      // Create membership tier mapping
+      const membershipTiers: Record<string, string> = {};
+      selectedEmployees.forEach(emp => {
+        membershipTiers[emp.id] = emp.membershipTier;
+      });
+      selectedDependents.forEach(dep => {
+        membershipTiers[dep.id] = dep.membershipTier;
+      });
+
+      // Create enrollment request
+      await employerApi.createEnrollmentRequest(selectedProvider!.id, {
+        employee_ids: selectedEmployees.map(emp => emp.id),
+        dependent_ids: selectedDependents.map(dep => dep.id),
+        membership_tiers: membershipTiers
+      });
+
+      setIsEnrollmentComplete(true);
+      setIsConfirmationOpen(false);
+      toast({
+        title: "Enrollment Request Submitted",
+        description: "Your enrollment request has been sent to the provider for approval.",
+        duration: 5000,
+      });
+    } catch (error) {
+      console.error('Error submitting enrollment:', error);
+      toast({
+        title: "Failed to submit enrollment",
+        description: "Please try again or contact support if the problem persists.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isEnrollmentComplete) {
     return (

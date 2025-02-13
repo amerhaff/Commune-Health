@@ -19,6 +19,7 @@ TableHead,
 TableHeader,
 TableRow,
 } from "@/components/ui/table"
+import { brokerApi } from "@/utils/broker-api-client"
 
 interface MembershipTier {
 name: string
@@ -287,18 +288,45 @@ const calculateTotalCost = () => {
 const { monthly, yearly } = calculateTotalCost()
 
 const handleCompleteEnrollment = async () => {
-  // Here you would typically send the enrollment data to your backend
-  // For this example, we'll simulate an API call with a timeout
-  await new Promise(resolve => setTimeout(resolve, 2000))
+  try {
+    if (!selectedPractice) {
+      throw new Error('No provider selected');
+    }
 
-  setIsEnrollmentComplete(true)
-  setIsConfirmationOpen(false)
-  toast({
-    title: "Enrollment Completed",
-    description: "Your enrollment has been successfully processed.",
-    duration: 5000,
-  })
-}
+    // Get selected employees and dependents with their membership tiers
+    const selectedEmployees = employees.filter(emp => emp.selected);
+    const membershipTiers: Record<string, string> = {};
+    
+    selectedEmployees.forEach(emp => {
+      membershipTiers[emp.id] = emp.membershipTier;
+      emp.dependents
+        .filter(dep => dep.selected)
+        .forEach(dep => {
+          membershipTiers[dep.id] = dep.membershipTier;
+        });
+    });
+
+    await brokerApi.submitProviderEnrollment(
+      params.employerId,
+      selectedPractice.id,
+      membershipTiers
+    );
+
+    setIsEnrollmentComplete(true);
+    toast({
+      title: "Enrollment Submitted",
+      description: "The enrollment request has been sent to the provider for approval.",
+      duration: 5000,
+    });
+  } catch (error) {
+    console.error('Error submitting enrollment:', error);
+    toast({
+      title: "Failed to submit enrollment",
+      description: "Please try again or contact support if the problem persists.",
+      variant: "destructive",
+    });
+  }
+};
 
 if (isEnrollmentComplete) {
   return (

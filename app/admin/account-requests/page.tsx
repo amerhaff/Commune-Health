@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -26,6 +26,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft } from 'lucide-react';
 import cn from 'classnames';
+import { toast } from "@/components/ui/use-toast"
 
 // Mock data for demonstration purposes
 const accountRequests = {
@@ -88,6 +89,69 @@ const totalAccountRequests = Object.values(accountRequests).reduce((sum, request
 
 export default function AccountRequestsPage() {
   const [activeTab, setActiveTab] = useState("broker")
+  const [requests, setRequests] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchRequests = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:8000/api/accounts/pending-approvals/', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setRequests(data);
+      } else {
+        toast({
+          title: "Failed to fetch requests",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+      toast({
+        title: "Failed to fetch requests",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleApproval = async (userId: string, action: 'approve' | 'reject') => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/accounts/approve/${userId}/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ action })
+      });
+
+      if (response.ok) {
+        // Refresh the requests list
+        fetchRequests();
+        toast({
+          title: `Account ${action}ed successfully`,
+          variant: "success",
+        });
+      }
+    } catch (error) {
+      console.error('Error handling approval:', error);
+      toast({
+        title: "Failed to process request",
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -268,11 +332,11 @@ export default function AccountRequestsPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
-                            <Button size="sm" className="bg-green-500 hover:bg-green-600">
+                            <Button size="sm" className="bg-green-500 hover:bg-green-600" onClick={() => handleApproval(request.id, 'approve')}>
                               <CheckCircle className="mr-2 h-4 w-4" />
                               Approve
                             </Button>
-                            <Button size="sm" variant="destructive">
+                            <Button size="sm" variant="destructive" onClick={() => handleApproval(request.id, 'reject')}>
                               <XCircle className="mr-2 h-4 w-4" />
                               Reject
                             </Button>

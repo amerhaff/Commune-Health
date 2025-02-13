@@ -19,6 +19,7 @@ TableHead,
 TableHeader,
 TableRow,
 } from "@/components/ui/table"
+import { brokerApi } from "@/utils/broker-api-client"
 
 interface MembershipTier {
 name: string
@@ -224,7 +225,7 @@ dependents: []
 },
 ]
 
-export default function ProviderEnrollmentPage() {
+export default function SubmitRosterPage({ params }: { params: { brokerId: string } }) {
 const [expandedProvider, setExpandedProvider] = useState<string | null>(null)
 const [selectedProvider, setSelectedProvider] = useState<Provider | null>(providers[0]);
 const [employees, setEmployees] = useState<Employee[]>(initialEmployees)
@@ -309,19 +310,45 @@ setSelectAll(allSelected)
 }, [employees])
 
 
-const handleCompleteEnrollment = async () => {
-// Here you would typically send the enrollment data to your backend
-// For this example, we'll simulate an API call with a timeout
-await new Promise(resolve => setTimeout(resolve, 2000))
+const handleSubmitRoster = async () => {
+  try {
+    // Format employee data for quote request
+    const employeeData = employees.filter(emp => emp.selected).map(emp => ({
+      firstName: emp.firstName,
+      lastName: emp.lastName,
+      email: emp.email,
+      dateOfBirth: emp.dateOfBirth,
+      sex: emp.sex,
+      dependents: emp.dependents
+        .filter(dep => dep.selected)
+        .map(dep => ({
+          firstName: dep.firstName,
+          lastName: dep.lastName,
+          relationship: dep.relationship,
+          dateOfBirth: dep.dateOfBirth,
+          sex: dep.sex
+        }))
+    }));
 
-setIsEnrollmentComplete(true)
-setIsConfirmationOpen(false)
-toast({
-  title: "Enrollment Completed",
-  description: "Your enrollment has been successfully processed.",
-  duration: 5000,
-})
-}
+    await brokerApi.createQuoteRequest(params.brokerId, {
+      employee_data: employeeData
+    });
+
+    setIsEnrollmentComplete(true);
+    toast({
+      title: "Quote Request Submitted",
+      description: "Your roster has been sent to the broker for review.",
+      duration: 5000,
+    });
+  } catch (error) {
+    console.error('Error submitting roster:', error);
+    toast({
+      title: "Failed to submit roster",
+      description: "Please try again or contact support if the problem persists.",
+      variant: "destructive",
+    });
+  }
+};
 
 if (isEnrollmentComplete) {
 return (
@@ -483,7 +510,7 @@ return (
                 <Button variant="outline" onClick={() => setIsConfirmationOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleCompleteEnrollment}>
+                <Button onClick={handleSubmitRoster}>
                   Confirm Request
                 </Button>
               </DialogFooter>
