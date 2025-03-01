@@ -12,9 +12,6 @@ import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft, Mail, Phone, MapPin, Send, Search } from 'lucide-react'
 import { Input } from "@/components/ui/input"
-import { employerApi } from "@/utils/employer-api-client"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { ErrorAlert } from "@/components/ui/error-alert"
 
 interface Message {
   id: string
@@ -42,8 +39,6 @@ export default function EmployerMessagingPage() {
   const [message, setMessage] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const [searchTerm, setSearchTerm] = useState("")
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   const contacts: Contact[] = [
     { 
@@ -83,44 +78,45 @@ export default function EmployerMessagingPage() {
     // More contacts
   ]
 
-  useEffect(() => {
-    const fetchMessages = async () => {
-      try {
-        const data = await employerApi.getMessages('current')
-        setMessages(data.messages)
-      } catch (err) {
-        setError('Failed to fetch messages')
-        console.error(err)
-      } finally {
-        setLoading(false)
+  const handleSendMessage = () => {
+    if (message.trim() && selectedContact) {
+      const newMessage: Message = {
+        id: Date.now().toString(),
+        sender: "You",
+        content: message,
+        timestamp: new Date(),
+        seen: true
       }
-    }
-
-    fetchMessages()
-  }, [])
-
-  const handleSendMessage = async (recipientType: string, recipientId: string) => {
-    try {
-      const response = await employerApi.sendMessage('current', {
-        recipient_type: recipientType,
-        recipient_id: recipientId,
-        content: message
-      })
-      setMessages(prev => [...prev, response])
+      setMessages(prev => [...prev, newMessage])
       setMessage("")
-    } catch (error) {
-      console.error('Error sending message:', error)
+
+      // Simulate a response
+      setTimeout(() => {
+        const response: Message = {
+          id: (Date.now() + 1).toString(),
+          sender: selectedContact.name,
+          content: `Thank you for your message. I'll get back to you shortly.`,
+          timestamp: new Date(),
+          seen: false
+        }
+        setMessages(prev => [...prev, response])
+      }, 1000)
     }
   }
+
+  useEffect(() => {
+    if (selectedContact && selectedContact.lastMessage) {
+      setMessages([selectedContact.lastMessage])
+    } else {
+      setMessages([])
+    }
+  }, [selectedContact])
 
   const filteredContacts = contacts.filter(contact =>
     contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (contact.company && contact.company.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (contact.specialty && contact.specialty.toLowerCase().includes(searchTerm.toLowerCase()))
   )
-
-  if (loading) return <LoadingSpinner />
-  if (error) return <ErrorAlert message={error} />
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -250,7 +246,7 @@ export default function EmployerMessagingPage() {
                     className="flex-grow mr-2 resize-none"
                     rows={2}
                   />
-                  <Button onClick={() => handleSendMessage(selectedContact.role, selectedContact.id)} className="h-full">
+                  <Button onClick={handleSendMessage} className="h-full">
                     <Send className="h-4 w-4" />
                     <span className="sr-only">Send message</span>
                   </Button>
@@ -267,5 +263,4 @@ export default function EmployerMessagingPage() {
     </div>
   )
 }
-
 

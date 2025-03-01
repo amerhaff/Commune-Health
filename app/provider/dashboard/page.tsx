@@ -1,40 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, DollarSign, Calendar, MessageSquare, ClipboardList } from 'lucide-react'
-import { providerApi } from "@/utils/api-client"
 
 export default function ProviderDashboard() {
-  const [metrics, setMetrics] = useState({
-    totalPatients: 0,
-    revenue: 0,
-    appointments: 0,
-    messages: 0
-  });
-
-  useEffect(() => {
-    const fetchMetrics = async () => {
-      try {
-        const data = await providerApi.getDashboardMetrics('current');
-        setMetrics({
-          totalPatients: data.total_patients,
-          revenue: data.revenue,
-          appointments: data.appointments,
-          messages: data.messages
-        });
-      } catch (error) {
-        console.error('Error fetching metrics:', error);
-        // Add error handling UI
-      }
-    };
-
-    fetchMetrics();
-  }, []);
-
   return (
     <div className="flex flex-col min-h-screen">
       <header className="border-b">
@@ -71,7 +44,7 @@ export default function ProviderDashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{metrics.totalPatients}</div>
+              <div className="text-2xl font-bold">1,234</div>
             </CardContent>
           </Card>
           <Card>
@@ -80,7 +53,7 @@ export default function ProviderDashboard() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${metrics.revenue.toLocaleString()}</div>
+              <div className="text-2xl font-bold">$15,234</div>
             </CardContent>
           </Card>
           <Card>
@@ -89,7 +62,7 @@ export default function ProviderDashboard() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{metrics.appointments}</div>
+              <div className="text-2xl font-bold">23</div>
             </CardContent>
           </Card>
           <Card>
@@ -98,7 +71,7 @@ export default function ProviderDashboard() {
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{metrics.messages}</div>
+              <div className="text-2xl font-bold">5</div>
             </CardContent>
           </Card>
           <Card>

@@ -6,52 +6,8 @@ import Image from "next/image"
 import { Users, Building2, Bell, UserCheck, DollarSign, Settings, ClipboardList, MessageSquare, Stethoscope } from 'lucide-react'
 import { useBrokerContext } from "@/context/BrokerContext"
 import { cn } from "@/lib/utils"
-import { useState, useEffect } from "react"
-import { brokerApi } from "@/utils/broker-api-client"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { ErrorAlert } from "@/components/ui/error-alert"
 
 export default function BrokerHomePage() {
-  const [dashboardData, setDashboardData] = useState({
-    clientCount: 0,
-    pendingEnrollments: 0,
-    totalRevenue: 0,
-    recentMessages: []
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        // Fetch multiple data points for the dashboard
-        const [clients, enrollments, revenue, messages] = await Promise.all([
-          brokerApi.getClientRoster('current'),
-          brokerApi.getEnrollmentCenter('current'),
-          brokerApi.getRevenueMetrics('current', new Date().getFullYear().toString(), new Date().getMonth().toString()),
-          brokerApi.getMessages('current')
-        ]);
-
-        setDashboardData({
-          clientCount: clients.length,
-          pendingEnrollments: enrollments.pending_count,
-          totalRevenue: revenue.total_revenue,
-          recentMessages: messages.slice(0, 5)
-        });
-      } catch (err) {
-        setError('Failed to fetch dashboard data');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardData();
-  }, []);
-
-  if (loading) return <LoadingSpinner />;
-  if (error) return <ErrorAlert message={error} />;
-
   const unreadMessageCount = 5; // Replace with actual unread message count
   const enrollmentRequestCount = 2; // Replace with actual enrollment request count
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -18,7 +18,6 @@ import { ArrowLeft, DollarSign, Users, Calendar, TrendingUp, TrendingDown, Arrow
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { cn } from "@/lib/utils"
-import { providerApi } from "@/utils/api-client"
 
 interface MonthlyData {
 month: string;
@@ -118,26 +117,6 @@ const chartData = months.map(month => ({
     return sum + (monthData?.enrollees || 0);
   }, 0),
 }));
-
-const [revenueData, setRevenueData] = useState(null);
-
-useEffect(() => {
-  const fetchRevenueData = async () => {
-    try {
-      const data = await providerApi.getRevenueMetrics(
-        'current',
-        selectedYear,
-        selectedMonth
-      );
-      setRevenueData(data);
-    } catch (error) {
-      console.error('Error fetching revenue data:', error);
-      // Add error handling UI
-    }
-  };
-
-  fetchRevenueData();
-}, [selectedYear, selectedMonth]);
 
 return (
   <div className="flex flex-col min-h-screen">

@@ -8,30 +8,12 @@ import { Input } from "@/components/ui/input"
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("")
   const [isSubmitted, setIsSubmitted] = useState(false)
-  const [error, setError] = useState("")
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setError("")
-    
-    try {
-      const response = await fetch('http://localhost:8000/api/accounts/password/reset/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      })
-
-      if (response.ok) {
-        setIsSubmitted(true)
-      } else {
-        const data = await response.json()
-        setError(data.error || 'Something went wrong')
-      }
-    } catch (err) {
-      setError('Failed to connect to server')
-    }
+    // Here you would typically send a request to your backend to initiate the password reset process
+    console.log("Password reset requested for:", email)
+    setIsSubmitted(true)
   }
 
   if (isSubmitted) {
@@ -49,7 +31,6 @@ export function ForgotPasswordForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {error && <p className="text-red-500 text-center">{error}</p>}
       <Input
         type="email"
         placeholder="Enter your email"

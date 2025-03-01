@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -39,7 +39,6 @@ import {
 } from "recharts"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
-import { employerApi } from "@/utils/employer-api-client"
 
 interface MonthlySpend {
   month: string
@@ -66,26 +65,8 @@ const monthlyData: MonthlySpend[] = [
 const years = ["2021", "2022", "2023"]
 
 export default function HealthcareSpendPage() {
-  const [spendData, setSpendData] = useState(null);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth().toString());
-
-  useEffect(() => {
-    const fetchSpendData = async () => {
-      try {
-        const data = await employerApi.getHealthcareSpend(
-          'current',
-          selectedYear,
-          selectedMonth
-        );
-        setSpendData(data);
-      } catch (error) {
-        console.error('Error fetching healthcare spend:', error);
-      }
-    };
-
-    fetchSpendData();
-  }, [selectedYear, selectedMonth]);
+  const [selectedMonth, setSelectedMonth] = useState("December")
+  const [selectedYear, setSelectedYear] = useState("2023")
 
   const currentMonthData = useMemo(() => {
     return monthlyData.find(data => data.month === selectedMonth)

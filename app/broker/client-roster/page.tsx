@@ -1,35 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { brokerApi } from "@/utils/broker-api-client"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { ErrorAlert } from "@/components/ui/error-alert"
-
 // ... (imports and interfaces remain unchanged)
 
 export default function ClientRosterPage() {
-  const [clients, setClients] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchClients = async () => {
-      try {
-        const data = await brokerApi.getClientRoster('current');
-        setClients(data);
-      } catch (err) {
-        setError('Failed to fetch client roster');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchClients();
-  }, []);
-
-  if (loading) return <LoadingSpinner />;
-  if (error) return <ErrorAlert message={error} />;
+  // ... (state and other code remain unchanged)
 
   const handleUnenrollEmployee = (clientId: string, employeeId: string) => {
     const updatedClients = clients.map(client => {

@@ -38,10 +38,9 @@ export default function SignupPage() {
     setConfirmPassword(e.target.value)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault(); // Prevent default form submission behavior
 
-    // Validate form fields
     if (!accountType || !email || !password || !confirmPassword) {
       toast({
         title: "Please fill in all fields",
@@ -50,7 +49,6 @@ export default function SignupPage() {
       return
     }
 
-    // Validate password match and requirements
     if (password !== confirmPassword) {
       toast({
         title: "Passwords do not match",
@@ -68,45 +66,9 @@ export default function SignupPage() {
       return
     }
 
-    try {
-      // Create user account
-      const response = await fetch('http://localhost:8000/api/accounts/register/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          user_type: accountType.toUpperCase(),
-          requires_approval: accountType !== 'employer' // Only employers don't need approval
-        }),
-      });
-
-      if (response.ok) {
-        // Move to onboarding step
-        setStep(2);
-        toast({
-          title: "Registration successful",
-          description: "Your account is pending approval. You will receive an email when approved.",
-          duration: 5000,
-        });
-      } else {
-        const data = await response.json();
-        toast({
-          title: "Registration failed",
-          description: data.error || "Something went wrong",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Registration failed",
-        description: "Could not connect to server",
-        variant: "destructive",
-      });
-    }
-  };
+    // Proceed to onboarding based on account type
+    setStep(2); // Move to the next step (onboarding)
+  }
 
   const handleBack = () => {
     if (step > 1) {

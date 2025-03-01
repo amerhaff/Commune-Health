@@ -15,9 +15,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { employerApi } from "@/utils/employer-api-client"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { ErrorAlert } from "@/components/ui/error-alert"
 
 interface Employee {
   name: string
@@ -27,45 +24,17 @@ interface Employee {
 }
 
 export default function EmployerHomePage() {
-  const [dashboardData, setDashboardData] = useState({
-    enrollmentStats: null,
-    recentMessages: [],
-    healthcareSpend: null
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [employeeStats, setEmployeeStats] = useState({
+    totalEmployees: 1234,
+    enrolledEmployees: 1000
+  })
+  const [totalRevenue, setTotalRevenue] = useState(128450)
+  const [unreadMessageCount, setUnreadMessageCount] = useState(5)
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const [enrollmentStats, messages, healthcareSpend] = await Promise.all([
-          employerApi.getEnrollmentStats('current'),
-          employerApi.getMessages('current'),
-          employerApi.getHealthcareSpend(
-            'current',
-            new Date().getFullYear().toString(),
-            new Date().getMonth().toString()
-          )
-        ]);
-
-        setDashboardData({
-          enrollmentStats,
-          recentMessages: messages.messages.slice(0, 5),
-          healthcareSpend
-        });
-      } catch (err) {
-        setError('Failed to fetch dashboard data');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardData();
-  }, []);
-
-  if (loading) return <LoadingSpinner />;
-  if (error) return <ErrorAlert message={error} />;
+    // Fetch the actual unread message count here and update the state
+    // Example: setUnreadMessageCount(fetchUnreadMessageCount())
+  }, [])
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -118,11 +87,11 @@ export default function EmployerHomePage() {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <span>Total Employees:</span>
-                <span className="text-2xl font-bold">{dashboardData.enrollmentStats?.totalEmployees}</span>
+                <span className="text-2xl font-bold">{employeeStats.totalEmployees}</span>
               </div>
               <div className="flex items-center justify-between mb-4">
                 <span>Enrolled Employees:</span>
-                <span className="text-2xl font-bold">{dashboardData.enrollmentStats?.enrolledEmployees}</span>
+                <span className="text-2xl font-bold">{employeeStats.enrolledEmployees}</span>
               </div>
             </div>
             <Button 
@@ -230,9 +199,9 @@ export default function EmployerHomePage() {
           <CardHeader className="relative flex flex-row items-center justify-between pb-2">
             <div className="absolute inset-x-0 top-0 h-2 bg-[#1400FF] rounded-t-md" />
             <CardTitle className="text-xl font-semibold flex items-center relative z-10">
-              {dashboardData.recentMessages.length > 0 && (
+              {unreadMessageCount > 0 && (
                 <span className="absolute -top-1 -left-1 bg-red-500 rounded-full h-3 w-3 text-xs text-white flex items-center justify-center">
-                  {dashboardData.recentMessages.length <= 9 ? dashboardData.recentMessages.length : "9+"}
+                  {unreadMessageCount <= 9 ? unreadMessageCount : "9+"}
                 </span>
               )}
               <MessageSquare className="mr-2 h-6 w-6 text-blue-600" />
